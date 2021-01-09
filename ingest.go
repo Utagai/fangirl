@@ -1,0 +1,158 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/zmb3/spotify"
+)
+
+type ingester struct {
+	client *spotify.Client
+}
+
+type data struct {
+	artists     []spotify.SimpleArtist
+	albums      []spotify.SimpleAlbum
+	savedAlbums map[string]spotify.SavedAlbum
+}
+
+func (in *ingester) Ingest() (*data, error) {
+	artists, err := in.getArtists()
+	if err != nil {
+		return nil, err
+	}
+
+	allAlbums, err := in.getAlbumsForArtists(artists)
+	if err != nil {
+		return nil, err
+	}
+
+	savedAlbums, err := in.getSavedAlbums()
+	if err != nil {
+		return nil, err
+	}
+
+	return &data{
+		artists:     artists,
+		albums:      allAlbums,
+		savedAlbums: savedAlbums,
+	}, nil
+}
+
+func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
+	log.Println("Fetching all followed artists")
+	// I didn't try super hard, but I also didn't find any better/cleaner way to
+	// use this API because FullArtistCursorPage does not implement
+	// spotify.pageable.
+	after := ""
+	numArtists := 0
+	artists := make([]spotify.SimpleArtist, 0)
+	for {
+		followedArtists, err := in.client.CurrentUsersFollowedArtistsOpt(-1, after)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get the followed artists: %w", err)
+		}
+
+		for _, artist := range followedArtists.Artists {
+			artists = append(artists, artist.SimpleArtist)
+			numArtists++
+		}
+
+		percentageDone := 100 * (float64(numArtists) / float64(followedArtists.Total))
+		log.Printf("\tFetched %f%%", percentageDone)
+		if numArtists >= followedArtists.Total {
+			break
+		}
+
+		after = followedArtists.Cursor.After
+	}
+
+	log.Println("Fetched all followed artists")
+
+	return artists, nil
+}
+
+func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spotify.SimpleAlbum, error) {
+	// TODO: Run on a subset for now. We should remove this later.
+	artists = artists[:5]
+
+	log.Println("Getting albums for artists")
+	countryCode := "US"
+	opts := spotify.Options{
+		Country: &countryCode,
+	}
+	allAlbums := make([]spotify.SimpleAlbum, 0)
+	// At this point we have a slice of artists. We want to, for each artist, get their albums.
+	for _, artist := range artists {
+		log.Printf("Getting albums for artist: %q", artist.Name)
+		simpleAlbumPage, err := in.client.GetArtistAlbumsOpt(
+			artist.ID,
+			&opts,
+			spotify.AlbumTypeAlbum,
+			spotify.AlbumTypeCompilation,
+			spotify.AlbumTypeSingle,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get artist albums for %q: %w", artist.Name, err)
+		}
+
+		numAlbums := 0
+		for {
+			for _, album := range simpleAlbumPage.Albums {
+				numAlbums++
+				percentageDone := 100 * (float64(numAlbums) / float64(simpleAlbumPage.Total))
+				log.Printf("\tFetched %f%%", percentageDone)
+				allAlbums = append(allAlbums, album)
+			}
+
+			if err := in.client.NextPage(simpleAlbumPage); err == spotify.ErrNoMorePages {
+				break
+			} else if err != nil {
+				return nil, fmt.Errorf("failed to iterate to the next artist album page: %w", err)
+			}
+
+			// Unfortunately, we need to do this to avoid getting rate-limited by Spotify.
+			time.Sleep(1 * time.Second)
+		}
+	}
+
+	log.Println("Fetched albums for all artists")
+
+	return allAlbums, nil
+}
+
+func (in *ingester) getSavedAlbums() (map[string]spotify.SavedAlbum, error) {
+	log.Println("Getting saved albums for user")
+	// Before we get around to processing these albums we retrieved we need to
+	// get the albums that the user has already liked. This is going to be useful
+	// for determining if a released album has already been listened to by a
+	// user.
+	savedAlbumsPage, err := in.client.CurrentUsersAlbums()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get the saved albums: %w", err)
+	}
+
+	savedAlbums := make(map[string]spotify.SavedAlbum, 0)
+	numAlbums := 0
+	for {
+		for _, album := range savedAlbumsPage.Albums {
+			savedAlbums[album.ID.String()] = album
+			numAlbums++
+		}
+
+		if err := in.client.NextPage(savedAlbumsPage); err == spotify.ErrNoMorePages {
+			break
+		} else if err != nil {
+			return nil, fmt.Errorf("failed to iterate to the next saved albums page: %w", err)
+		}
+
+		percentageDone := 100 * (float64(numAlbums) / float64(savedAlbumsPage.Total))
+		log.Printf("\tFetched %f%%", percentageDone)
+	}
+
+	log.Println("Got saved albums")
+
+	return savedAlbums, nil
+}
