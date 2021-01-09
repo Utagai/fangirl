@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/zmb3/spotify"
@@ -43,6 +44,24 @@ const (
 	state       = "fangirl"
 )
 
+func getTokenPath() (string, bool) {
+	cacheDir, err := os.UserCacheDir()
+	if err != nil {
+		// Better to not just error here, since we can technically still function.
+		// But this does suck.
+		return "", false
+	}
+
+	fangirlCacheDir := filepath.Join(cacheDir, "fangirl")
+	if _, err := os.Stat(fangirlCacheDir); os.IsNotExist(err) {
+		if err := os.Mkdir(fangirlCacheDir, 0755); err != nil {
+			return "", false
+		}
+	}
+
+	return filepath.Join(cacheDir, "fangirl", "token.txt"), true
+}
+
 // GetSpotifyClient retrieves the spotify client for the given invocation
 // configuration.
 func (c *Config) GetSpotifyClient() (*spotify.Client, error) {
@@ -54,13 +73,24 @@ func (c *Config) GetSpotifyClient() (*spotify.Client, error) {
 }
 
 func (c *Config) cacheExists() bool {
-	_, err := os.Stat("token.txt")
+	cacheDir, ok := getTokenPath()
+	if !ok {
+		log.Panicln("WARN: failed to find a cache directory for saving the oauth2 token")
+		return false
+	}
+
+	_, err := os.Stat(cacheDir)
 
 	return !os.IsNotExist(err)
 }
 
 func (c *Config) getCachedSpotifyClient() (*spotify.Client, error) {
-	tokenBytes, err := ioutil.ReadFile("token.txt")
+	cacheDir, ok := getTokenPath()
+	if !ok {
+		return nil, errors.New("failed to find the cache dir for the oauth2 token")
+	}
+
+	tokenBytes, err := ioutil.ReadFile(cacheDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read the token file: %w", err)
 	}
@@ -108,7 +138,12 @@ func (c *Config) saveToken(token *oauth2.Token) error {
 		return fmt.Errorf("failed to marshal the oauth2 token: %w", err)
 	}
 
-	if err := ioutil.WriteFile("token.txt", tokenBytes, 0600); err != nil {
+	cacheDir, ok := getTokenPath()
+	if !ok {
+		return errors.New("failed to find the cache dir for the oauth2 token")
+	}
+
+	if err := ioutil.WriteFile(cacheDir, tokenBytes, 0600); err != nil {
 		return fmt.Errorf("failed to write the token file: %w", err)
 	}
 
