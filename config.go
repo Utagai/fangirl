@@ -16,22 +16,11 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// RunKind is the kind of task a fangirl invocation should do.
-type RunKind int
-
-const (
-	// RecentReleases finds all the unliked albums of followed artists released in the last month.
-	RecentReleases RunKind = iota
-	// AllUnliked finds _all_ the unliked albums of followed artists, prior to now - duration.
-	AllUnliked
-)
-
 // Config is the configuration used during a fangirl invocation to determine
 // what and how it needs to work with the user's playlists.
 type Config struct {
 	duration     time.Duration
 	playlistName string
-	runKind      RunKind
 
 	spotifyClientID     string
 	spotifyClientSecret string
@@ -196,18 +185,10 @@ func GetConfig() (*Config, error) {
 		return nil, errors.New("SPOTIFY_CLIENT_SECRET environment variable is required to be set")
 	}
 
-	var unlikedPriorToDurationPlaylistName string
+	var playlistName string
 	flag.StringVar(
-		&unlikedPriorToDurationPlaylistName,
-		"unliked",
-		"",
-		"the name for the playlist that will contain all unliked songs",
-	)
-
-	var recentReleasesPlaylistName string
-	flag.StringVar(
-		&recentReleasesPlaylistName,
-		"recent",
+		&playlistName,
+		"playlist",
 		"",
 		"the name for the playlist containing recent releases",
 	)
@@ -221,21 +202,9 @@ func GetConfig() (*Config, error) {
 	// Parse the command line arguments.
 	flag.Parse()
 
-	// Both of these cannot be supplied simultaneously for a single invocation.
-	if unlikedPriorToDurationPlaylistName != "" && recentReleasesPlaylistName != "" {
-		return nil, errors.New("cannot specify both unliked and recent in the same invocation")
-	}
-
-	// But, at least one _must_ be supplied.
-	if unlikedPriorToDurationPlaylistName == "" && recentReleasesPlaylistName == "" {
-		return nil, errors.New("must specify either unliked or recent for an invocation")
-	}
-
-	runKind := RecentReleases
-	playlistName := recentReleasesPlaylistName
-	if unlikedPriorToDurationPlaylistName != "" {
-		runKind = AllUnliked
-		playlistName = unlikedPriorToDurationPlaylistName
+	// If not supplied, default the playlist name to 'fangirl'.
+	if playlistName == "" {
+		playlistName = "fangirl"
 	}
 
 	auth := spotify.NewAuthenticator(
@@ -249,7 +218,6 @@ func GetConfig() (*Config, error) {
 	return &Config{
 		duration:     *durationPtr,
 		playlistName: playlistName,
-		runKind:      runKind,
 
 		spotifyClientID:     spotifyClientID,
 		spotifyClientSecret: spotifyClientSecret,
