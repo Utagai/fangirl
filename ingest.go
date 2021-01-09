@@ -19,20 +19,26 @@ type data struct {
 }
 
 func (in *ingester) Ingest() (*data, error) {
+	log.Println("Fetching all followed artists")
 	artists, err := in.getArtists()
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Fetched all followed artists")
 
+	log.Println("Getting albums for artists")
 	allAlbums, err := in.getAlbumsForArtists(artists)
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Fetched albums for all artists")
 
+	log.Println("Getting saved albums for user")
 	savedAlbums, err := in.getSavedAlbums()
 	if err != nil {
 		return nil, err
 	}
+	log.Println("Got saved albums")
 
 	return &data{
 		artists:     artists,
@@ -42,7 +48,6 @@ func (in *ingester) Ingest() (*data, error) {
 }
 
 func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
-	log.Println("Fetching all followed artists")
 	// I didn't try super hard, but I also didn't find any better/cleaner way to
 	// use this API because FullArtistCursorPage does not implement
 	// spotify.pageable.
@@ -69,8 +74,6 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 		after = followedArtists.Cursor.After
 	}
 
-	log.Println("Fetched all followed artists")
-
 	return artists, nil
 }
 
@@ -78,7 +81,6 @@ func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spoti
 	// TODO: Run on a subset for now. We should remove this later.
 	artists = artists[:5]
 
-	log.Println("Getting albums for artists")
 	countryCode := "US"
 	opts := spotify.Options{
 		Country: &countryCode,
@@ -118,13 +120,10 @@ func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spoti
 		}
 	}
 
-	log.Println("Fetched albums for all artists")
-
 	return allAlbums, nil
 }
 
 func (in *ingester) getSavedAlbums() (map[string]spotify.SavedAlbum, error) {
-	log.Println("Getting saved albums for user")
 	// Before we get around to processing these albums we retrieved we need to
 	// get the albums that the user has already liked. This is going to be useful
 	// for determining if a released album has already been listened to by a
@@ -151,8 +150,6 @@ func (in *ingester) getSavedAlbums() (map[string]spotify.SavedAlbum, error) {
 		percentageDone := 100 * (float64(numAlbums) / float64(savedAlbumsPage.Total))
 		log.Printf("\tFetched %f%%", percentageDone)
 	}
-
-	log.Println("Got saved albums")
 
 	return savedAlbums, nil
 }
