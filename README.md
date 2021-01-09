@@ -47,3 +47,5 @@ playlist creation will not create incremental work.
 * `fangirl` does not handle cases where a playlist size exceeds 10,000, which is the maximum playlist size. It is
 fixable by overflowing into multiple playlists, but it isn't something I've personally faced. Open an issue if its
 a problem for you. Otherwise, I'll fix it if I ever need to.
+* On initial run, you'll have to go through the OAuth2 flow. Afterwards, `fangirl` will save the OAuth2 token in
+your cache directory. On Unix, that's likely going to be `~/.cache/fangirl/`.
