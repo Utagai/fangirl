@@ -238,7 +238,13 @@ func GetConfig() (*Config, error) {
 		playlistName = unlikedPriorToDurationPlaylistName
 	}
 
-	auth := spotify.NewAuthenticator(redirectURI, spotify.ScopeUserFollowRead)
+	auth := spotify.NewAuthenticator(
+		redirectURI,
+		spotify.ScopeUserFollowRead,
+		spotify.ScopeUserLibraryRead,
+		spotify.ScopePlaylistModifyPrivate,
+		spotify.ScopePlaylistReadPrivate,
+	)
 	auth.SetAuthInfo(spotifyClientID, spotifyClientSecret)
 	return &Config{
 		duration:     *durationPtr,

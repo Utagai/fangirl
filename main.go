@@ -18,6 +18,7 @@ func main() {
 		log.Fatalf("failed to get a Spotify API client: %v", err)
 	}
 
+	log.Println("Fetching all followed artists")
 	// I didn't try super hard, but I also didn't find any better/cleaner way to
 	// use this API because FullArtistCursorPage does not implement
 	// spotify.pageable.
@@ -30,23 +31,26 @@ func main() {
 			log.Fatalf("failed to get the followed artists: %v", err)
 		}
 
-		log.Println("Batch")
 		for _, artist := range followedArtists.Artists {
-			log.Printf("Followed artist: %q", artist.Name)
 			artists = append(artists, artist.SimpleArtist)
 			numArtists++
 		}
 
+		percentageDone := 100 * (float64(numArtists) / float64(followedArtists.Total))
+		log.Printf("Fetched %f%%", percentageDone)
 		if numArtists >= followedArtists.Total {
 			break
 		}
 
 		after = followedArtists.Cursor.After
-		log.Println("AFTER: ", after)
 	}
 
-	artists = artists[:100]
+	log.Println("Fetched all followed artists")
 
+	// TODO: Run on a subset for now. We should remove this later.
+	artists = artists[:50]
+
+	log.Println("Getting albums for artists")
 	countryCode := "US"
 	opts := spotify.Options{
 		Country: &countryCode,
@@ -54,6 +58,7 @@ func main() {
 	allAlbums := make([]spotify.SimpleAlbum, 0)
 	// At this point we have a slice of artists. We want to, for each artist, get their albums.
 	for _, artist := range artists {
+		log.Printf("Getting album for artist: %q", artist.Name)
 		simpleAlbumPage, err := client.GetArtistAlbumsOpt(
 			artist.ID,
 			&opts,
@@ -65,8 +70,12 @@ func main() {
 			log.Fatalf("failed to get artist albums for %q: %v", artist.Name, err)
 		}
 
+		numAlbums := 0
 		for {
 			for _, album := range simpleAlbumPage.Albums {
+				numAlbums++
+				percentageDone := 100 * (float64(numAlbums) / float64(simpleAlbumPage.Total))
+				log.Printf("\tFetched %f%%", percentageDone)
 				allAlbums = append(allAlbums, album)
 			}
 
@@ -75,9 +84,15 @@ func main() {
 			} else if err != nil {
 				log.Fatalf("failed to iterate to the next artist album page: %v", err)
 			}
+
+			// Unfortunately, we need to do this to avoid getting rate-limited by Spotify.
+			time.Sleep(1 * time.Second)
 		}
 	}
 
+	log.Println("Fetched albums for all artists")
+
+	log.Println("Getting saved albums for user")
 	// Before we get around to processing these albums we retrieved we need to
 	// get the albums that the user has already liked. This is going to be useful
 	// for determining if a released album has already been listened to by a
@@ -100,10 +115,13 @@ func main() {
 		}
 	}
 
+	log.Println("Got saved albums")
+
 	// We know that this is a strict subset of allAlbums, so it must have its
 	// length or less.
 	albums := make([]spotify.SimpleAlbum, 0, len(allAlbums))
 
+	log.Println("Filtering albums")
 	// At this point, we've effectively flat mapped the artists to a slice of albums.
 	// Next, we want to filter out albums that we don't want.
 	// This means:
@@ -128,6 +146,7 @@ func main() {
 		}
 	}
 
+	log.Println("Filtered albums")
 	// At this point, we have all the albums we want to exist in our target playlist.
 	for _, album := range albums {
 		log.Printf("Album: %q by %s", album.Name, album.Artists[0].Name)
