@@ -59,7 +59,7 @@ func getTokenPath() (string, bool) {
 		}
 	}
 
-	return filepath.Join(cacheDir, "fangirl", "token.txt"), true
+	return filepath.Join(fangirlCacheDir, "token.txt"), true
 }
 
 // GetSpotifyClient retrieves the spotify client for the given invocation
