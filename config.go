@@ -100,6 +100,8 @@ func (c *Config) getCachedSpotifyClient() (*spotify.Client, error) {
 		return nil, fmt.Errorf("failed to unmarshal the token bytes: %w", err)
 	}
 
+	// TODO: Should we be using token.Valid() to determine if we should actually
+	// re-cache?
 	client := c.auth.NewClient(&token)
 
 	return &client, nil

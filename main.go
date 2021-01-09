@@ -45,6 +45,8 @@ func main() {
 		log.Println("AFTER: ", after)
 	}
 
+	artists = artists[:100]
+
 	countryCode := "US"
 	opts := spotify.Options{
 		Country: &countryCode,
@@ -52,7 +54,13 @@ func main() {
 	allAlbums := make([]spotify.SimpleAlbum, 0)
 	// At this point we have a slice of artists. We want to, for each artist, get their albums.
 	for _, artist := range artists {
-		simpleAlbumPage, err := client.GetArtistAlbumsOpt(artist.ID, &opts)
+		simpleAlbumPage, err := client.GetArtistAlbumsOpt(
+			artist.ID,
+			&opts,
+			spotify.AlbumTypeAlbum,
+			spotify.AlbumTypeCompilation,
+			spotify.AlbumTypeSingle,
+		)
 		if err != nil {
 			log.Fatalf("failed to get artist albums for %q: %v", artist.Name, err)
 		}
@@ -64,28 +72,58 @@ func main() {
 
 			if err := client.NextPage(simpleAlbumPage); err == spotify.ErrNoMorePages {
 				break
+			} else if err != nil {
+				log.Fatalf("failed to iterate to the next artist album page: %v", err)
 			}
 		}
 	}
 
+	// Before we get around to processing these albums we retrieved we need to
+	// get the albums that the user has already liked. This is going to be useful
+	// for determining if a released album has already been listened to by a
+	// user.
+	savedAlbumsPage, err := client.CurrentUsersAlbums()
+	if err != nil {
+		log.Fatalf("failed to get the saved albums: %v", err)
+	}
+
+	savedAlbums := make(map[string]spotify.SavedAlbum, 0)
+	for {
+		for _, album := range savedAlbumsPage.Albums {
+			savedAlbums[album.ID.String()] = album
+		}
+
+		if err := client.NextPage(savedAlbumsPage); err == spotify.ErrNoMorePages {
+			break
+		} else if err != nil {
+			log.Fatalf("failed to iterate to the next saved albums page: %v", err)
+		}
+	}
+
+	// We know that this is a strict subset of allAlbums, so it must have its
+	// length or less.
+	albums := make([]spotify.SimpleAlbum, 0, len(allAlbums))
+
 	// At this point, we've effectively flat mapped the artists to a slice of albums.
-	// Next, we want to filter out albums that are outside the duration we want.
+	// Next, we want to filter out albums that we don't want.
+	// This means:
+	//	Albums outside the duration.
+	//	Albums the user has already liked.
 	// Technically, we could have done this earlier in the above loop for
 	// efficiency, but doing it here is nice because its much better organized.
 	// This program does not give a damn about being ridiculously fast, it is
 	// bottlenecked by Spotify API calls no matter how you look at it. An extra
 	// in-memory loop won't hurt anyone.
-
-	// We know that this is a strict subset of allAlbums, so it must have its
-	// length or less.
-	albums := make([]spotify.SimpleAlbum, 0, len(allAlbums))
 	for _, album := range allAlbums {
 		releaseTime := album.ReleaseDateTime()
 		timeSinceRelease := time.Now().Sub(releaseTime)
 		// If the time since it was released is less than the specified duration,
 		// then the album was released in the the last `duration` time. Therefore,
 		// this album qualifies and should pass the filter.
-		if timeSinceRelease < cfg.duration {
+		isRecent := timeSinceRelease < cfg.duration
+		_, alreadySaved := savedAlbums[album.ID.String()]
+
+		if isRecent && !alreadySaved {
 			albums = append(albums, album)
 		}
 	}
