@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -58,7 +59,7 @@ func main() {
 	allAlbums := make([]spotify.SimpleAlbum, 0)
 	// At this point we have a slice of artists. We want to, for each artist, get their albums.
 	for _, artist := range artists {
-		log.Printf("Getting album for artist: %q", artist.Name)
+		log.Printf("Getting albums for artist: %q", artist.Name)
 		simpleAlbumPage, err := client.GetArtistAlbumsOpt(
 			artist.ID,
 			&opts,
@@ -150,5 +151,59 @@ func main() {
 	// At this point, we have all the albums we want to exist in our target playlist.
 	for _, album := range albums {
 		log.Printf("Album: %q by %s", album.Name, album.Artists[0].Name)
+	}
+
+	// So we're ready to potentially make, and append to a target playlist.
+	currentUser, err := client.CurrentUser()
+	if err != nil {
+		log.Fatalf("failed to get the current user: %v", err)
+	}
+
+	playlist, err := client.CreatePlaylistForUser(
+		currentUser.ID,
+		cfg.playlistName,
+		fmt.Sprintf("fangirl - Last %v", cfg.duration),
+		false,
+	)
+	if err != nil {
+		log.Fatalf("failed to create the playlist: %v", err)
+	}
+
+	for i, album := range albums {
+		albumTracksPage, err := client.GetAlbumTracks(album.ID)
+		if err != nil {
+			log.Fatalf("failed to get album tracks: %v", err)
+		}
+
+		for {
+			batch := make([]spotify.ID, 0, 100)
+			for _, track := range albumTracksPage.Tracks {
+				batch = append(batch, track.ID)
+				if len(batch) == 100 {
+					if _, err := client.AddTracksToPlaylist(playlist.ID, batch...); err != nil {
+						log.Fatalf("failed to add tracks to the playlist: %v", err)
+					}
+					batch = batch[:0]
+				}
+			}
+
+			if len(batch) != 0 {
+				// If this happens, it means that we finished the batching loop above
+				// and had some tracks leftover. So let's not forget to add this to the
+				// playlist before we go to the next page of tracks.
+				if _, err := client.AddTracksToPlaylist(playlist.ID, batch...); err != nil {
+					log.Fatalf("failed to add tracks to the playlist: %v", err)
+				}
+			}
+
+			if err := client.NextPage(albumTracksPage); err == spotify.ErrNoMorePages {
+				break
+			} else if err != nil {
+				log.Fatalf("failed to iterate to the next album track page: %v", err)
+			}
+		}
+
+		percentageDone := 100 * (float64(i+1) / float64(len(albums)))
+		log.Printf("Imported %f%%", percentageDone)
 	}
 }
