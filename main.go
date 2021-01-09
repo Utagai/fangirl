@@ -2,9 +2,12 @@ package main
 
 import (
 	"log"
+	"time"
 )
 
 func main() {
+	start := time.Now()
+
 	cfg, err := GetConfig()
 	if err != nil {
 		log.Fatalf("failed to initialize a configuration: %v", err)
@@ -34,4 +37,8 @@ func main() {
 	if err := makePlaylist(client, cfg, data); err != nil {
 		log.Fatalf("failed to create the playlist: %v", err)
 	}
+
+	end := time.Now()
+
+	log.Printf("Finished in %v", end.Sub(start))
 }
