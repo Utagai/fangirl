@@ -187,16 +187,6 @@ func (cfg *config) startHTTPServer(auth spotify.Authenticator, clientChan chan *
 const monthDuration = time.Hour * 24 * 31
 
 func getConfig() (*config, error) {
-	spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID")
-	if !ok {
-		return nil, errors.New("SPOTIFY_CLIENT_ID environment variable is required to be set")
-	}
-
-	spotifyClientSecret, ok := os.LookupEnv("SPOTIFY_CLIENT_SECRET")
-	if !ok {
-		return nil, errors.New("SPOTIFY_CLIENT_SECRET environment variable is required to be set")
-	}
-
 	var playlistName string
 	flag.StringVar(
 		&playlistName,
@@ -243,6 +233,16 @@ func getConfig() (*config, error) {
 		spotify.ScopePlaylistModifyPrivate,
 		spotify.ScopePlaylistReadPrivate,
 	)
+
+	spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID")
+	if !ok {
+		return nil, errors.New("SPOTIFY_CLIENT_ID environment variable is required to be set")
+	}
+
+	spotifyClientSecret, ok := os.LookupEnv("SPOTIFY_CLIENT_SECRET")
+	if !ok {
+		return nil, errors.New("SPOTIFY_CLIENT_SECRET environment variable is required to be set")
+	}
 	auth.SetAuthInfo(spotifyClientID, spotifyClientSecret)
 
 	return &config{
