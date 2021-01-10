@@ -30,6 +30,26 @@ $ fangirl -playlist releases -duration 8928h
 ```
 Note that the `-duration` flag takes in a duration that is in the format of Golang's `time.Duration`.
 
+### Credentials
+Of course, you need Spotify developer credentials to run `fangirl`. `fangirl` looks in the environment
+for credentials. In particular, it looks for:
+* `SPOTIFY_CLIENT_ID` - For the Spotify client ID.
+* `SPOTIFY_CLIENT_SECRET` - For the Spotify client secret.
+
+You can make your own at the [Spotify developer dashboard](https://developer.spotify.com/dashboard/applications).
+
+**NOTE** When making this app, make sure to set the callback URI to `http://localhost:8080/callback`.
+
+Upon initial start-up, `fangirl` will request you to visit an OAuth2 page. `fangirl` hosts the callback URL you
+set in the dashboard, and will get the necessary privileges to execute. On the next start-up, `fangirl` will
+re-use the credentials it got from last time.
+
+## Building
+`fangirl` is just a pure Go program:
+```
+$ go build
+```
+
 ## Considerations
 There's a few pieces to `fangirl`'s behavior that are worth pointing out explicitly:
 * `fangirl` is not _fast_. To do what it does, we need to issue hundreds, if not thousands of API requests to
