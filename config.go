@@ -39,7 +39,7 @@ func (cfg *config) String() string {
 	for artistName := range cfg.blacklistedArtists {
 		blacklistedArtistsLst = append(blacklistedArtistsLst, artistName)
 	}
-	sb.WriteString(fmt.Sprintf("blacklistedArtists: %v", blacklistedArtistsLst))
+	sb.WriteString(fmt.Sprintf("blacklistedArtists: [%s]", strings.Join(blacklistedArtistsLst, ", ")))
 	sb.WriteString("}")
 
 	return sb.String()
@@ -269,7 +269,10 @@ func getBlacklistedArtists(blacklistFile string) (map[string]struct{}, error) {
 
 	blacklistedArtists := make(map[string]struct{}, 0)
 	for _, line := range strings.Split(fileContentStr, "\n") {
-		blacklistedArtists[line] = struct{}{}
+		trimmedLine := strings.Trim(line, "\n\r\t")
+		if len(trimmedLine) != 0 {
+			blacklistedArtists[trimmedLine] = struct{}{}
+		}
 	}
 
 	return blacklistedArtists, nil
