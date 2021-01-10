@@ -30,6 +30,12 @@ $ fangirl -playlist releases -duration 8928h
 ```
 Note that the `-duration` flag takes in a duration that is in the format of Golang's `time.Duration`.
 
+## Building
+`fangirl` is just a pure Go program:
+```
+$ go build
+```
+
 ## Considerations
 There's a few pieces to `fangirl`'s behavior that are worth pointing out explicitly:
 * `fangirl` is not _fast_. To do what it does, we need to issue hundreds, if not thousands of API requests to
