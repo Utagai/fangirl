@@ -20,6 +20,7 @@ func main() {
 
 	ingester := ingester{
 		client: client,
+		cfg:    cfg,
 	}
 
 	data, err := ingester.Ingest()

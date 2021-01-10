@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/zmb3/spotify"
@@ -19,8 +20,9 @@ import (
 // Config is the configuration used during a fangirl invocation to determine
 // what and how it needs to work with the user's playlists.
 type Config struct {
-	duration     time.Duration
-	playlistName string
+	duration           time.Duration
+	playlistName       string
+	blacklistedArtists map[string]struct{}
 
 	spotifyClientID     string
 	spotifyClientSecret string
@@ -199,12 +201,29 @@ func GetConfig() (*Config, error) {
 		"the duration to consider 'recent'; defaults to 1 month",
 	)
 
+	var blacklistFile string
+	flag.StringVar(
+		&blacklistFile,
+		"blacklist",
+		"",
+		"a path to a blacklist file containing artists to skip",
+	)
+
 	// Parse the command line arguments.
 	flag.Parse()
 
 	// If not supplied, default the playlist name to 'fangirl'.
 	if playlistName == "" {
 		playlistName = "fangirl"
+	}
+
+	var err error
+	blacklistedArtists := map[string]struct{}{}
+	if blacklistFile != "" {
+		blacklistedArtists, err = getBlacklistedArtists(blacklistFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get blacklisted artists: %w", err)
+		}
 	}
 
 	auth := spotify.NewAuthenticator(
@@ -215,13 +234,31 @@ func GetConfig() (*Config, error) {
 		spotify.ScopePlaylistReadPrivate,
 	)
 	auth.SetAuthInfo(spotifyClientID, spotifyClientSecret)
+
 	return &Config{
-		duration:     *durationPtr,
-		playlistName: playlistName,
+		duration:           *durationPtr,
+		playlistName:       playlistName,
+		blacklistedArtists: blacklistedArtists,
 
 		spotifyClientID:     spotifyClientID,
 		spotifyClientSecret: spotifyClientSecret,
 
 		auth: auth,
 	}, nil
+}
+
+func getBlacklistedArtists(blacklistFile string) (map[string]struct{}, error) {
+	fileContents, err := ioutil.ReadFile(blacklistFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read blacklist file: %w", err)
+	}
+
+	fileContentStr := string(fileContents)
+
+	blacklistedArtists := make(map[string]struct{}, 0)
+	for _, line := range strings.Split(fileContentStr, "\n") {
+		blacklistedArtists[line] = struct{}{}
+	}
+
+	return blacklistedArtists, nil
 }

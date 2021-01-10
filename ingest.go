@@ -10,6 +10,7 @@ import (
 
 type ingester struct {
 	client *spotify.Client
+	cfg    *Config
 }
 
 type data struct {
@@ -61,6 +62,11 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 		}
 
 		for _, artist := range followedArtists.Artists {
+			if _, ok := in.cfg.blacklistedArtists[artist.Name]; ok {
+				log.Printf("Skipping blacklisted artist: %q", artist.Name)
+				// If this is a blacklisted artist, then skip it.
+				continue
+			}
 			artists = append(artists, artist.SimpleArtist)
 			numArtists++
 		}
