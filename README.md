@@ -1,6 +1,9 @@
 #  _fangirl_ 🤩
 
 Fangirl helps me keep track of all the releases from my followed artists on [Spotify](https://www.spotify.com/).
+It creates a playlist of recent releases. Here's an example of one it made:
+
+![example](./rsrc/example.png)
 
 ## Motivation
 Spotify has a section for tracking some releases, but the method they use to construct that list is opaque, and
@@ -63,9 +66,8 @@ listened to the song already. Hopefully, you follow artists you mostly like, and
 * `fangirl` emits logs during execution detailing what it is doing. However, `fangirl` explicitly separates its
 _read_ operations from its final _write_ operation of creating the playlist. This means that a failure prior to
 playlist creation will not create incremental work.
-* The playlist name will actually be appended to with a time range of the format `Mon Day, Year - Mon Day, Year`.
-* Similar to above, the playlist _description_ will also be updated with information to denote its creation by
-`fangirl` and the time range (albeit in a bit more verbose of a format).
+* The playlist name isn't exactly honored. See the screenshot for additional information `fangirl` appends to the
+name.
 * `fangirl` does not handle cases where a playlist size exceeds 10,000, which is the maximum playlist size. It is
 fixable by overflowing into multiple playlists, but it isn't something I've personally faced. Open an issue if its
 a problem for you. Otherwise, I'll fix it if I ever need to.
