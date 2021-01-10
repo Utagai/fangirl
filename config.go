@@ -17,9 +17,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// Config is the configuration used during a fangirl invocation to determine
-// what and how it needs to work with the user's playlists.
-type Config struct {
+type config struct {
 	duration           time.Duration
 	playlistName       string
 	blacklistedArtists map[string]struct{}
@@ -30,7 +28,7 @@ type Config struct {
 	auth spotify.Authenticator
 }
 
-func (cfg *Config) String() string {
+func (cfg *config) String() string {
 	var sb strings.Builder
 
 	// Yeah, this is kind of ugly. I don't care.
@@ -72,15 +70,15 @@ func getTokenPath() (string, bool) {
 
 // GetSpotifyClient retrieves the spotify client for the given invocation
 // configuration.
-func (c *Config) GetSpotifyClient() (*spotify.Client, error) {
-	if c.cacheExists() {
-		return c.getCachedSpotifyClient()
+func (cfg *config) GetSpotifyClient() (*spotify.Client, error) {
+	if cfg.cacheExists() {
+		return cfg.getCachedSpotifyClient()
 	}
 
-	return c.getFreshSpotifyClient()
+	return cfg.getFreshSpotifyClient()
 }
 
-func (c *Config) cacheExists() bool {
+func (cfg *config) cacheExists() bool {
 	cacheDir, ok := getTokenPath()
 	if !ok {
 		log.Panicln("WARN: failed to find a cache directory for saving the oauth2 token")
@@ -92,7 +90,7 @@ func (c *Config) cacheExists() bool {
 	return !os.IsNotExist(err)
 }
 
-func (c *Config) getCachedSpotifyClient() (*spotify.Client, error) {
+func (cfg *config) getCachedSpotifyClient() (*spotify.Client, error) {
 	cacheDir, ok := getTokenPath()
 	if !ok {
 		return nil, errors.New("failed to find the cache dir for the oauth2 token")
@@ -110,17 +108,17 @@ func (c *Config) getCachedSpotifyClient() (*spotify.Client, error) {
 
 	// TODO: Should we be using token.Valid() to determine if we should actually
 	// re-cache?
-	client := c.auth.NewClient(&token)
+	client := cfg.auth.NewClient(&token)
 
 	return &client, nil
 }
 
-func (c *Config) getFreshSpotifyClient() (*spotify.Client, error) {
+func (cfg *config) getFreshSpotifyClient() (*spotify.Client, error) {
 	var clientChan = make(chan *spotify.Client)
 
-	c.startHTTPServer(c.auth, clientChan)
+	cfg.startHTTPServer(cfg.auth, clientChan)
 
-	url := c.auth.AuthURL(state)
+	url := cfg.auth.AuthURL(state)
 	fmt.Println("Please log in to Spotify by visiting the following page in your browser:", url)
 
 	// Wait for the auth flow to complete.
@@ -137,12 +135,12 @@ func (c *Config) getFreshSpotifyClient() (*spotify.Client, error) {
 		return client, fmt.Errorf("failed to retrieve token from the client for saving: %w", err)
 	}
 
-	c.saveToken(token)
+	cfg.saveToken(token)
 
 	return client, nil
 }
 
-func (c *Config) saveToken(token *oauth2.Token) error {
+func (cfg *config) saveToken(token *oauth2.Token) error {
 	tokenBytes, err := json.Marshal(token)
 	if err != nil {
 		return fmt.Errorf("failed to marshal the oauth2 token: %w", err)
@@ -162,7 +160,7 @@ func (c *Config) saveToken(token *oauth2.Token) error {
 
 // startHTTPServer and surrounding code is taken from the relevant examples
 // from zmb3/spotify repository.
-func (c *Config) startHTTPServer(auth spotify.Authenticator, clientChan chan *spotify.Client) {
+func (cfg *config) startHTTPServer(auth spotify.Authenticator, clientChan chan *spotify.Client) {
 	// Start an HTTP server on our callback URI, so that we can know when the
 	// OAuth flow has completed.
 	http.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
@@ -190,10 +188,7 @@ func (c *Config) startHTTPServer(auth spotify.Authenticator, clientChan chan *sp
 // but we assume every month is 31 days. It really doesn'tt matter.
 const monthDuration = time.Hour * 24 * 31
 
-// GetConfig is a constructor for a Config. It initializes the fields
-// as best as it can.  It will error if it runs into anything considered
-// invalid for a fangirl invocation.
-func GetConfig() (*Config, error) {
+func getConfig() (*config, error) {
 	spotifyClientID, ok := os.LookupEnv("SPOTIFY_CLIENT_ID")
 	if !ok {
 		return nil, errors.New("SPOTIFY_CLIENT_ID environment variable is required to be set")
@@ -252,7 +247,7 @@ func GetConfig() (*Config, error) {
 	)
 	auth.SetAuthInfo(spotifyClientID, spotifyClientSecret)
 
-	return &Config{
+	return &config{
 		duration:           *durationPtr,
 		playlistName:       playlistName,
 		blacklistedArtists: blacklistedArtists,

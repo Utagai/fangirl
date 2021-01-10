@@ -10,7 +10,7 @@ import (
 
 type ingester struct {
 	client *spotify.Client
-	cfg    *Config
+	cfg    *config
 }
 
 type data struct {

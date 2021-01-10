@@ -8,7 +8,7 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-func makePlaylist(client *spotify.Client, cfg *Config, d *data) error {
+func makePlaylist(client *spotify.Client, cfg *config, d *data) error {
 	// So we're ready to potentially make, and append to a target playlist.
 	currentUser, err := client.CurrentUser()
 	if err != nil {

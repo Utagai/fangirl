@@ -8,7 +8,7 @@ import (
 func main() {
 	start := time.Now()
 
-	cfg, err := GetConfig()
+	cfg, err := getConfig()
 	if err != nil {
 		log.Fatalf("failed to initialize a configuration: %v", err)
 	}
