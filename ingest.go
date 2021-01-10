@@ -86,9 +86,6 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 }
 
 func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spotify.SimpleAlbum, error) {
-	// TODO: Run on a subset for now. We should remove this later.
-	artists = artists[:5]
-
 	countryCode := "US"
 	opts := spotify.Options{
 		Country: &countryCode,
