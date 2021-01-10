@@ -49,3 +49,4 @@ fixable by overflowing into multiple playlists, but it isn't something I've pers
 a problem for you. Otherwise, I'll fix it if I ever need to.
 * On initial run, you'll have to go through the OAuth2 flow. Afterwards, `fangirl` will save the OAuth2 token in
 your cache directory. On Unix, that's likely going to be `~/.cache/fangirl/`.
+* `fangirl` defines a "release" as an album that is either a typical album, a compilation or a single.
