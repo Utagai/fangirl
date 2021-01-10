@@ -43,5 +43,5 @@ func main() {
 
 	end := time.Now()
 
-	log.Printf("Finished in %v", end.Sub(start))
+	log.Printf("Added %d releases (out of %d artists) in %v", len(data.albums), len(data.artists), end.Sub(start))
 }
