@@ -68,9 +68,7 @@ func getTokenPath() (string, bool) {
 	return filepath.Join(fangirlCacheDir, "token.txt"), true
 }
 
-// GetSpotifyClient retrieves the spotify client for the given invocation
-// configuration.
-func (cfg *config) GetSpotifyClient() (*spotify.Client, error) {
+func (cfg *config) getSpotifyClient() (*spotify.Client, error) {
 	if cfg.cacheExists() {
 		return cfg.getCachedSpotifyClient()
 	}
