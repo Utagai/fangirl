@@ -62,13 +62,15 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 		}
 
 		for _, artist := range followedArtists.Artists {
+			numArtists++
+
 			if _, ok := in.cfg.blacklistedArtists[artist.Name]; ok {
-				log.Printf("Skipping blacklisted artist: %q", artist.Name)
+				log.Printf("\tSkipping blacklisted artist: %q", artist.Name)
 				// If this is a blacklisted artist, then skip it.
 				continue
 			}
+
 			artists = append(artists, artist.SimpleArtist)
-			numArtists++
 		}
 
 		percentageDone := 100 * (float64(numArtists) / float64(followedArtists.Total))
