@@ -13,6 +13,8 @@ func main() {
 		log.Fatalf("failed to initialize a configuration: %v", err)
 	}
 
+	log.Printf("Running with configuration: %s", cfg.String())
+
 	client, err := cfg.GetSpotifyClient()
 	if err != nil {
 		log.Fatalf("failed to get a Spotify API client: %v", err)

@@ -30,6 +30,23 @@ type Config struct {
 	auth spotify.Authenticator
 }
 
+func (cfg *Config) String() string {
+	var sb strings.Builder
+
+	// Yeah, this is kind of ugly. I don't care.
+	sb.WriteString("{")
+	sb.WriteString(fmt.Sprintf("duration: %v, ", cfg.duration))
+	sb.WriteString(fmt.Sprintf("playlistName: %q, ", cfg.playlistName))
+	blacklistedArtistsLst := make([]string, 0, len(cfg.blacklistedArtists))
+	for artistName := range cfg.blacklistedArtists {
+		blacklistedArtistsLst = append(blacklistedArtistsLst, artistName)
+	}
+	sb.WriteString(fmt.Sprintf("blacklistedArtists: %v", blacklistedArtistsLst))
+	sb.WriteString("}")
+
+	return sb.String()
+}
+
 const (
 	redirectURI = "http://localhost:8080/callback"
 	state       = "fangirl"
