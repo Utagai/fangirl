@@ -94,7 +94,7 @@ func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spoti
 	// At this point we have a slice of artists. We want to, for each artist, get their albums.
 	for i, artist := range artists {
 		percentageDone := 100 * (float64(i) / float64(len(artists)))
-		log.Printf("Getting albums for artist: %q (%f%% done)", artist.Name, percentageDone)
+		log.Printf("(%f%% done) Getting albums for artist: %q", percentageDone, artist.Name)
 		simpleAlbumPage, err := in.client.GetArtistAlbumsOpt(
 			artist.ID,
 			&opts,
