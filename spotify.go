@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/zmb3/spotify"
@@ -35,7 +36,8 @@ func wrapInRetry(fun func() error, maxTries uint, retryDelay time.Duration) (err
 	for i := uint(0); i <= maxTries; i++ {
 		err = fun()
 		if err != nil {
-			if i < maxTries {
+			log.Printf("errored for the %dth time: %v", i+1, err)
+			if i < maxTries { // Don't wait an extra amount at the end when we've hit the maxTries.
 				time.Sleep(retryDelay)
 			}
 			continue
