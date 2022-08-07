@@ -9,7 +9,7 @@ import (
 )
 
 type ingester struct {
-	client *spotify.Client
+	client *SpotifyClient
 	cfg    *config
 }
 
@@ -65,8 +65,8 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 			numArtists++
 
 			if _, ok := in.cfg.blacklistedArtists[artist.Name]; ok {
-				log.Printf("\tSkipping blacklisted artist: %q", artist.Name)
 				// If this is a blacklisted artist, then skip it.
+				log.Printf("\tSkipping blacklisted artist: %q", artist.Name)
 				continue
 			}
 
@@ -115,7 +115,7 @@ func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spoti
 				allAlbums = append(allAlbums, album)
 			}
 
-			if err := in.client.NextPage(simpleAlbumPage); err == spotify.ErrNoMorePages {
+			if err := in.client.NextSimpleAlbumPage(simpleAlbumPage); err == spotify.ErrNoMorePages {
 				break
 			} else if err != nil {
 				return nil, fmt.Errorf("failed to iterate to the next artist album page: %w", err)
@@ -147,7 +147,7 @@ func (in *ingester) getSavedAlbums() (map[string]spotify.SavedAlbum, error) {
 			numAlbums++
 		}
 
-		if err := in.client.NextPage(savedAlbumsPage); err == spotify.ErrNoMorePages {
+		if err := in.client.NextSavedAlbumPage(savedAlbumsPage); err == spotify.ErrNoMorePages {
 			break
 		} else if err != nil {
 			return nil, fmt.Errorf("failed to iterate to the next saved albums page: %w", err)

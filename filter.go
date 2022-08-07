@@ -7,7 +7,7 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-func filterData(client *spotify.Client, d *data, duration time.Duration) *data {
+func filterData(d *data, duration time.Duration) *data {
 	// We know that this is a strict subset of allAlbums, so it must have its
 	// length or less.
 	albums := make(map[string]spotify.SimpleAlbum, len(d.albums))
@@ -16,8 +16,8 @@ func filterData(client *spotify.Client, d *data, duration time.Duration) *data {
 	// At this point, we've effectively flat mapped the artists to a slice of albums.
 	// Next, we want to filter out albums that we don't want.
 	// This means:
-	//	Albums outside the duration.
-	//	Albums the user has already liked.
+	//      Albums outside the duration.
+	//      Albums the user has already liked.
 	//  Duplicates (it is unclear sometimes why we get these from the Spotify API)
 	// Technically, we could have done this earlier in the above loop for
 	// efficiency, but doing it here is nice because its much better organized.

@@ -8,7 +8,7 @@ import (
 	"github.com/zmb3/spotify"
 )
 
-func makePlaylist(client *spotify.Client, cfg *config, d *data) error {
+func makePlaylist(client *SpotifyClient, cfg *config, d *data) error {
 	// So we're ready to potentially make, and append to a target playlist.
 	currentUser, err := client.CurrentUser()
 	if err != nil {
@@ -64,7 +64,7 @@ func makePlaylist(client *spotify.Client, cfg *config, d *data) error {
 				}
 			}
 
-			if err := client.NextPage(albumTracksPage); err == spotify.ErrNoMorePages {
+			if err := client.NextSimpleTrackPage(albumTracksPage); err == spotify.ErrNoMorePages {
 				break
 			} else if err != nil {
 				return fmt.Errorf("failed to iterate to the next album track page: %w", err)

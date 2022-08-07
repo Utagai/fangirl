@@ -30,7 +30,7 @@ func main() {
 		log.Fatalf("failed to ingest data from Spotify: %v", err)
 	}
 
-	data = filterData(client, data, cfg.duration)
+	data = filterData(data, cfg.duration)
 
 	// At this point, we have all the albums we want to exist in our target playlist.
 	for _, album := range data.albums {

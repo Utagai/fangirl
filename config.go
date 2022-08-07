@@ -48,6 +48,11 @@ func (cfg *config) String() string {
 const (
 	redirectURI = "http://localhost:8080/callback"
 	state       = "fangirl"
+
+	// maxTries is the number of times we should retry a failed Spotify API request.
+	maxTries = 5
+	// retryDelay is the amount of time we should wait before retrying a failed Spotify API request.
+	retryDelay = 10 * time.Second
 )
 
 func getTokenPath() (string, bool) {
@@ -68,18 +73,27 @@ func getTokenPath() (string, bool) {
 	return filepath.Join(fangirlCacheDir, "token.txt"), true
 }
 
-func (cfg *config) getSpotifyClient() (*spotify.Client, error) {
+func (cfg *config) getSpotifyClient() (*SpotifyClient, error) {
 	if cfg.cacheExists() {
-		return cfg.getCachedSpotifyClient()
+		client, err := cfg.getCachedSpotifyClient()
+		if err != nil {
+			return nil, err
+		}
+		return NewSpotifyClient(client, maxTries, retryDelay), err
 	}
 
-	return cfg.getFreshSpotifyClient()
+	client, err := cfg.getFreshSpotifyClient()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSpotifyClient(client, maxTries, retryDelay), err
 }
 
 func (cfg *config) cacheExists() bool {
 	cacheDir, ok := getTokenPath()
 	if !ok {
-		log.Panicln("WARN: failed to find a cache directory for saving the oauth2 token")
+		log.Panicln("failed to find a cache directory for saving the oauth2 token")
 		return false
 	}
 
