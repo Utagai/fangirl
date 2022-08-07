@@ -123,17 +123,17 @@ func (sc *SpotifyClient) CurrentUser() (*spotify.PrivateUser, error) {
 func (sc *SpotifyClient) NextSimpleAlbumPage(albumPage *spotify.SimpleAlbumPage) error {
 	return wrapInRetry(func() error {
 		return sc.client.NextPage(albumPage)
-	}, sc.maxTries, sc.retryDelay)
+	}, sc.maxTries, sc.retryDelay, spotify.ErrNoMorePages)
 }
 
 func (sc *SpotifyClient) NextSavedAlbumPage(albumPage *spotify.SavedAlbumPage) error {
 	return wrapInRetry(func() error {
 		return sc.client.NextPage(albumPage)
-	}, sc.maxTries, sc.retryDelay)
+	}, sc.maxTries, sc.retryDelay, spotify.ErrNoMorePages)
 }
 
 func (sc *SpotifyClient) NextSimpleTrackPage(trackPage *spotify.SimpleTrackPage) error {
 	return wrapInRetry(func() error {
 		return sc.client.NextPage(trackPage)
-	}, sc.maxTries, sc.retryDelay)
+	}, sc.maxTries, sc.retryDelay, spotify.ErrNoMorePages)
 }
