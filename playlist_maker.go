@@ -72,7 +72,7 @@ func makePlaylist(client *SpotifyClient, cfg *config, d *data) error {
 		}
 
 		percentageDone := 100 * (float64(i+1) / float64(len(d.albums)))
-		log.Printf("\tImported %f%%", percentageDone)
+		log.Printf("\t(%f%% done) Importing into playlist", percentageDone)
 	}
 
 	return nil

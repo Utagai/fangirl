@@ -73,7 +73,7 @@ func (in *ingester) getArtists() ([]spotify.SimpleArtist, error) {
 		}
 
 		percentageDone := 100 * (float64(numArtists) / float64(followedArtists.Total))
-		log.Printf("\tFetched %f%%", percentageDone)
+		log.Printf("\t(%f%% done) Fetching albums", percentageDone)
 		if numArtists >= followedArtists.Total {
 			break
 		}
