@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/zmb3/spotify"
 )
@@ -120,9 +119,6 @@ func (in *ingester) getAlbumsForArtists(artists []spotify.SimpleArtist) ([]spoti
 			} else if err != nil {
 				return nil, fmt.Errorf("failed to iterate to the next artist album page: %w", err)
 			}
-
-			// Unfortunately, we need to do this to avoid getting rate-limited by Spotify.
-			time.Sleep(1 * time.Second)
 		}
 	}
 
