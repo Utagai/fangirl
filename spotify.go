@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -32,10 +33,20 @@ func NewSpotifyClient(client *spotify.Client, maxTries uint, retryDelay time.Dur
 	}
 }
 
-func wrapInRetry(fun func() error, maxTries uint, retryDelay time.Duration) (err error) {
+func errIsOneOf(err error, errs ...error) bool {
+	for _, e := range errs {
+		if errors.Is(err, e) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func wrapInRetry(fun func() error, maxTries uint, retryDelay time.Duration, allowedErrs ...error) (err error) {
 	for i := uint(0); i <= maxTries; i++ {
 		err = fun()
-		if err != nil {
+		if err != nil && !errIsOneOf(err, allowedErrs...) {
 			log.Printf("errored for the %dth time: %v", i+1, err)
 			if i < maxTries { // Don't wait an extra amount at the end when we've hit the maxTries.
 				time.Sleep(retryDelay)
@@ -49,13 +60,18 @@ func wrapInRetry(fun func() error, maxTries uint, retryDelay time.Duration) (err
 	return err
 }
 
-func wrapInRetryWithRet[T any](fun func() (T, error), maxTries uint, retryDelay time.Duration) (ret T, err error) {
+func wrapInRetryWithRet[T any](
+	fun func() (T, error),
+	maxTries uint,
+	retryDelay time.Duration,
+	allowedErrs ...error,
+) (ret T, err error) {
 	// Maybe this is not that readable with the variable
 	// shadowing... but damn that was cool to write.
 	return ret, wrapInRetry(func() error {
 		ret, err = fun()
 		return err
-	}, maxTries, retryDelay)
+	}, maxTries, retryDelay, allowedErrs...)
 }
 
 func (sc *SpotifyClient) CurrentUsersFollowedArtistsOpt(limit int, after string) (*spotify.FullArtistCursorPage, error) {

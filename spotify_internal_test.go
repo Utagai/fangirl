@@ -8,6 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const (
+	testMaxTries = 5
+
+	// Set the testDelay to something tiny so we don't wait forever for these tests.
+	// I think more ideally we'd use a mocked clock or whatever, but like... whatever.
+	testDelay = 10 * time.Millisecond
+)
+
 func TestWrapWithRetry(t *testing.T) {
 	testErr := errors.New("foo")
 	errorsNever := func() error {
@@ -29,21 +37,18 @@ func TestWrapWithRetry(t *testing.T) {
 		}
 	}
 
-	// Set the testDelay to something tiny so we don't wait forever for these tests.
-	// I think more ideally we'd use a mocked clock or whatever, but like... whatever.
-	testDelay := 20 * time.Millisecond
-	maxTries := 5
+	testMaxTries := 5
 
 	// Sanity check the max tries we're testing against.
-	if maxTries < 2 {
-		t.Fatalf("maxTries should be set to a number greater than 2")
+	if testMaxTries < 2 {
+		t.Fatalf("testMaxTries should be set to a number greater than 2")
 	}
 
 	errorsOnce := makeNErrorFunc(1)
 	errorsTwice := makeNErrorFunc(2)
-	errorsMaxTimesExactly := makeNErrorFunc(maxTries)
-	errorsOnceMoreThanMax := makeNErrorFunc(maxTries + 1)
-	errorsOneLessThanMax := makeNErrorFunc(maxTries - 1)
+	errorsMaxTimesExactly := makeNErrorFunc(testMaxTries)
+	errorsOnceMoreThanMax := makeNErrorFunc(testMaxTries + 1)
+	errorsOneLessThanMax := makeNErrorFunc(testMaxTries - 1)
 
 	testCases := []struct {
 		name        string
@@ -91,7 +96,7 @@ func TestWrapWithRetry(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			actualErr := wrapInRetry(tc.fun, uint(maxTries), testDelay)
+			actualErr := wrapInRetry(tc.fun, uint(testMaxTries), testDelay)
 			if tc.expectedErr != nil {
 				assert.ErrorIs(t, actualErr, testErr)
 			} else {
@@ -102,13 +107,13 @@ func TestWrapWithRetry(t *testing.T) {
 }
 
 func TestDelayIsHonored(t *testing.T) {
-	maxTries := uint(2)
+	testMaxTries := uint(2)
 	retryDelay := 100 * time.Millisecond
 
 	start := time.Now()
 	err := wrapInRetry(func() error {
 		return errors.New("blah")
-	}, maxTries, retryDelay)
+	}, testMaxTries, retryDelay)
 	end := time.Now()
 	assert.Error(t, err)
 
@@ -126,7 +131,6 @@ func TestDelayIsHonored(t *testing.T) {
 func TestWrapInRetryWithRet(t *testing.T) {
 	// Since wrapInRetryWithRet just wraps (no pun intended)
 	// wrapWithRetry, we aren't going to try testing anything too crazy.
-
 	testErr := errors.New("hi")
 	numErrs := 0
 	maxErrs := 2
@@ -149,4 +153,27 @@ func TestWrapInRetryWithRet(t *testing.T) {
 
 	// The function should have only been called maxErrs times.
 	assert.Equal(t, numErrs, maxErrs)
+}
+
+func TestErrorAllowList(t *testing.T) {
+	unallowedErr := errors.New("bad")
+	allowedErr := errors.New("good")
+
+	unallowedErrFunc := func() error {
+		return unallowedErr
+	}
+
+	allowedErrFunc := func() error {
+		return allowedErr
+	}
+
+	// Calling this for either the allowed or unallowed functions will
+	// both fail, because no error is considered to be allowed.
+	assert.ErrorIs(t, wrapInRetry(unallowedErrFunc, testMaxTries, testDelay), unallowedErr)
+	assert.ErrorIs(t, wrapInRetry(allowedErrFunc, testMaxTries, testDelay), allowedErr)
+
+	// However, calling it with an allow list that contains the
+	// allowedErr will only fail the unallowedErrFunc:
+	assert.ErrorIs(t, wrapInRetry(unallowedErrFunc, testMaxTries, testDelay, allowedErr), unallowedErr)
+	assert.ErrorIs(t, wrapInRetry(allowedErrFunc, testMaxTries, testDelay, allowedErr), allowedErr)
 }
