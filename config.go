@@ -49,10 +49,15 @@ const (
 	redirectURI = "http://localhost:8080/callback"
 	state       = "fangirl"
 
+	// Together, maxTries and retryDelay gives us a total wait time of
+	// around 30 minutes. Sounds crazy, but this is a thing that runs in
+	// a cronjob once a month and it really sucks if it fails the one
+	// time it runs per month.
+
 	// maxTries is the number of times we should retry a failed Spotify API request.
-	maxTries = 5
+	maxTries = 60
 	// retryDelay is the amount of time we should wait before retrying a failed Spotify API request.
-	retryDelay = 10 * time.Second
+	retryDelay = 30 * time.Second
 )
 
 func getTokenPath() (string, bool) {
