@@ -48,7 +48,7 @@ page. `fangirl` hosts the callback URL you set in the dashboard, and
 will get the necessary privileges to execute. On the next start-up,
 `fangirl` will re-use the credentials it got from last time. 
 
-> :warning: In other words, `fangirl` **caches credentials** (see below in the Considerations section). If this is too insecure for you, **you've been warned**.
+> :warning: In other words, `fangirl` **caches credentials** (see below in the Considerations section). If this is too insecure for you, **you've been warned**. Feel free to file an issue or PR that makes this behavior optional.
 
 ## Building
 `fangirl` is just a pure Go program:
