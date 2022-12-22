@@ -43,10 +43,13 @@ You can make your own at the [Spotify developer dashboard](https://developer.spo
 
 **NOTE** When making this app, make sure to set the callback URI to `http://localhost:8080/callback`.
 
-Upon initial start-up, `fangirl` will request you to visit an OAuth2 page. `fangirl` hosts the callback URL you
-set in the dashboard, and will get the necessary privileges to execute. On the next start-up, `fangirl` will
-re-use the credentials it got from last time (it caches them, see below in the Considerations section -- if
-this is too insecure for you, you've been warned).
+Upon initial start-up, `fangirl` will request you to visit an OAuth2
+page. `fangirl` hosts the callback URL you set in the dashboard, and
+will get the necessary privileges to execute. On the next start-up,
+`fangirl` will re-use the credentials it got from last time. In other
+words, `fangirl` **caches credentials** (see below in the
+Considerations section). If this is too insecure for you, **you've
+been warned**.
 
 ## Building
 `fangirl` is just a pure Go program:
